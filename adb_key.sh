@@ -1,13 +1,15 @@
 #!/system/bin/sh
 #手动授权&取消授权adb请求
 #By Ryan Crepa q3285087232
-#Usage: adb_key [-a] [-d] [-r] [-d-all] [KEY] [DEVICE]
+#Usage: adb_key [-a] [-d] [-r] [-d-all] [-ex] [KEY] [DEVICE]
 #    -a [KEY] 授权adb,需要设备key
 #    -d [DEVICE] 取消授权设备，请在后面输入设备名(可用-r参数获取设备列表)
 #    -d-all 取消授权所有设备
 #    -r  读取当前已授权的设备名，不需要Key文件
+#    -ex [DEVICE] [FILE PATH] 提取指定设备的key到pub文件
 #Key文件一般是adbkey.pub文件
 #需要ROOT权限运行
+#Version 1.2
 SE=$1
 KEY=$2
 function check_key_a() {
@@ -70,6 +72,27 @@ for item in "${contents[@]}"; do
     echo "$item"
 done
 }
+function extract_pub() {
+    #提取指定key到pub文件
+    device=$2
+    TARGET_FILE="/data/misc/adb/adb_keys"
+    path=$3
+    isFileExist=0
+    if [ -z "$2" ]; then
+    echo Device name needed.
+    exit 1
+    fi
+    if [ -e "$3" ]; then
+        echo File "$3" already exists, it will be overwritten.
+        isFileExist=1
+    fi
+    #转义
+    ESCAPED_TEXT=$(echo "$device" | sed 's/[][\.*^$]/\\&/g')
+    #提取(grep/sed)
+    grep "^.*=${ESCAPED_TEXT}$" "$TARGET_FILE" > "$path" 2>/dev/null || {
+        sed -n "/^.*=${ESCAPED_TEXT}$/p" "$TARGET_FILE" > "$path" 2>/dev/null
+    }
+}
 if [ $SE = "-a" ] 2>/dev/null; then
     check_key_a
     echo Authorizing && authorize
@@ -86,12 +109,20 @@ else
                 read -p "Are you sure you will delete all devices authorized(y/n)?" repo
                 [ ${repo} == "y" ] && rm -rf /data/misc/adb/adb_keys && echo "done"
             else
-                echo Usage: adb_key [-a] [-d] [-r] [-d-all] [KEY] [DEVICE]
-                echo "    -a [KEY] authorize the device"
-                echo "    -d [DEVICE] unauthorize the device"
-                echo "    -r  read list of authorized devices"
-                echo "    -d-all  delete all devices authorized"
-                exit 1
+                if [ $SE = "-ex" ] 2>/dev/null; then
+                        echo "Extracting keys for device: $DEVICE to file: $FILE_PATH"
+                        extract_pub
+                        echo "Keys extracted to $FILE_PATH"
+                else
+                
+                    echo Usage: adb_key [-a] [-d] [-r] [-d-all] [KEY] [DEVICE]
+                    echo "    -a [KEY] authorize the device"
+                    echo "    -d [DEVICE] unauthorize the device"
+                    echo "    -r  read list of authorized devices"
+                    echo "    -d-all  delete all devices authorized"
+                    echo "    -ex [DEVICE] [FILE PATH] Extract keys to a pub file."
+                    exit 1
+                fi
             fi
         fi
     fi
