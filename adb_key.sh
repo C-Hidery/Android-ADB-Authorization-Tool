@@ -12,6 +12,7 @@
 #Version 1.2
 SE=$1
 KEY=$2
+op=$3
 function check_key_a() {
     if [ -e "$KEY" ]; then
         echo checking key file
@@ -74,24 +75,19 @@ done
 }
 function extract_pub() {
     #提取指定key到pub文件
-    device=$2
-    TARGET_FILE="/data/misc/adb/adb_keys"
-    path=$3
-    isFileExist=0
-    if [ -z "$2" ]; then
-    echo Device name needed.
-    exit 1
-    fi
+    #device=$2
+    TARGET_FILE=/data/misc/adb/adb_keys
+    path=$op
     if [ -e "$3" ]; then
         echo File "$3" already exists, it will be overwritten.
-        isFileExist=1
+        rm $path
     fi
     #转义
-    ESCAPED_TEXT=$(echo "$device" | sed 's/[][\.*^$]/\\&/g')
-    #提取(grep/sed)
-    grep "^.*=${ESCAPED_TEXT}$" "$TARGET_FILE" > "$path" 2>/dev/null || {
-        sed -n "/^.*=${ESCAPED_TEXT}$/p" "$TARGET_FILE" > "$path" 2>/dev/null
-    }
+    echo $path
+    touch $path
+  # 提取匹配行到变量
+  MATCHED_LINES=$(sed -n "/^.*= ${KEY}$/p" "$TARGET_FILE" )
+  echo ${MATCHED_LINES} > $path
 }
 if [ $SE = "-a" ] 2>/dev/null; then
     check_key_a
