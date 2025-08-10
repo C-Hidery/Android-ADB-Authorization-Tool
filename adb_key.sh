@@ -110,12 +110,12 @@ else
                 [ ${repo} == "y" ] && rm -rf /data/misc/adb/adb_keys && echo "done"
             else
                 if [ $SE = "-ex" ] 2>/dev/null; then
-                        echo "Extracting keys for device: $DEVICE to file: $FILE_PATH"
+                        echo "Extracting keys to file"
                         extract_pub
-                        echo "Keys extracted to $FILE_PATH"
+                        echo "Keys extracted"
                 else
                 
-                    echo Usage: adb_key [-a] [-d] [-r] [-d-all] [KEY] [DEVICE]
+                    echo Usage: adb_key [-a] [-d] [-r] [-d-all] [-ex] [KEY] [DEVICE]
                     echo "    -a [KEY] authorize the device"
                     echo "    -d [DEVICE] unauthorize the device"
                     echo "    -r  read list of authorized devices"
