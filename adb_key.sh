@@ -13,6 +13,13 @@
 SE=$1
 KEY=$2
 op=$3
+if [ -d "/data/misc/adb/keystore" ]; then
+#Android 11+
+DIR=/data/misc/adb/keystore/adb_keys
+else
+DIR=/data/misc/adb/adb_keys
+fi
+echo Current Adb Keys path : $DIR
 #检查是否为root权限
 root=$(id -u)
 if [ "$root" = 0 ]; then
@@ -28,19 +35,19 @@ function check_key_a() {
         echo Keys file does not exist!
         exit 1
     fi
-    if [ -e /data/misc/adb/adb_keys   ];then
-    if grep -q "`cat "$KEY"`" /data/misc/adb/adb_keys; then
+    if [ -e "$DIR"  ];then
+    if grep -q "`cat "$KEY"`" "$DIR"; then
         echo This device has been authorized, skipped!
         exit 1
     fi
     fi
 }
 function check_key_d() {
-    if [ -e /data/misc/adb/adb_keys   ];then
-    if grep -q "${KEY}" /data/misc/adb/adb_keys; then
+    if [ -e "$DIR"   ];then
+    if grep -q "${KEY}" "$DIR"; then
         echo Keys detected!
     else
-        echo This device is not authorized, skipped!
+        echo This device is not authorized, skippd!
         exit 1
     fi
     else     
@@ -50,11 +57,11 @@ function check_key_d() {
 }
 function authorize() {
     KEY1=`cat "$KEY"`
-    echo $KEY1 >> /data/misc/adb/adb_keys
+    echo $KEY1 >> $DIR
     test $? == 0 && echo OK! && exit 0 || echo Failed && exit 1
 }
 function unauthorize() {
-TARGET_FILE="/data/misc/adb/adb_keys"
+TARGET_FILE="$DIR"
 SEARCH_TEXT=$KEY
 if [ -z "$SEARCH_TEXT" ]; then
      echo "Error: Empty character"
@@ -75,7 +82,7 @@ function read_devices() {
 
 # 读取文件并提取 = 后的内容存入数组
 #必须用=号后面的内容,（一般是设备码）
-contents=($(sed 's/.*=//' /data/misc/adb/adb_keys))
+contents=($(sed 's/.*=//' $DIR))
 
 # 打印数组内容
 for item in "${contents[@]}"; do
@@ -85,7 +92,7 @@ done
 function extract_pub() {
     #提取指定key到pub文件
     #device=$2
-    TARGET_FILE=/data/misc/adb/adb_keys
+    TARGET_FILE=$DIR
     path=$op
     if [ -e $path ]; then
         echo File "$path" already exists, it will be overwritten.
@@ -118,7 +125,7 @@ else
         else
             if [ $SE = "-d-all" ] 2>/dev/null; then
                 read -p "Are you sure you will delete all devices authorized(y/n)?" repo
-                [ ${repo} == "y" ] && rm -rf /data/misc/adb/adb_keys && echo "done"
+                [ ${repo} == "y" ] && rm -rf $DIR && echo "done"
             else
                 if [ $SE = "-ex" ] 2>/dev/null; then
                         echo "Extracting keys to file"
