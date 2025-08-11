@@ -9,10 +9,18 @@
 #    -ex [DEVICE] [FILE PATH] 提取指定设备的key到pub文件
 #Key文件一般是adbkey.pub文件
 #需要ROOT权限运行
-#Version 1.2
+#Version 1.3
 SE=$1
 KEY=$2
 op=$3
+#检查是否为root权限
+root=$(id -u)
+if [ "$root" = 0 ]; then
+root=0
+else
+echo Error : must run as root !
+exit 1
+fi
 function check_key_a() {
     if [ -e "$KEY" ]; then
         echo checking key file
@@ -66,6 +74,7 @@ echo OK!
 function read_devices() {
 
 # 读取文件并提取 = 后的内容存入数组
+#必须用=号后面的内容,（一般是设备码）
 contents=($(sed 's/.*=//' /data/misc/adb/adb_keys))
 
 # 打印数组内容
@@ -78,16 +87,22 @@ function extract_pub() {
     #device=$2
     TARGET_FILE=/data/misc/adb/adb_keys
     path=$op
-    if [ -e "$3" ]; then
-        echo File "$3" already exists, it will be overwritten.
-        rm $path
+    if [ -e $path ]; then
+        echo File "$path" already exists, it will be overwritten.
+        rm "$path"
     fi
     #转义
-    echo $path
-    touch $path
-  # 提取匹配行到变量
-  MATCHED_LINES=$(sed -n "/^.*= ${KEY}$/p" "$TARGET_FILE" )
-  echo ${MATCHED_LINES} > $path
+    ESCAPED_TEXT=$(echo "$KEY" | sed 's/[][\.*^$]/\\&/g')
+    echo "$path"
+    touch "$path"
+  # 提取匹配行
+sed -n "/^.*= ${ESCAPED_TEXT}$/p" "$TARGET_FILE" > "$path" || { 
+echo Can not parse keys of $KEY, please check the device whether is authorized. && exit 1 
+    }
+    if [ ! -s "$path" ]; then
+    echo Failed to extract key of $KEY to "$path",please check the device whether is authorized.
+    exit 1
+    fi
 }
 if [ $SE = "-a" ] 2>/dev/null; then
     check_key_a
